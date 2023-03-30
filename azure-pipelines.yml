@@ -45,7 +45,7 @@ steps:
     displayName: Build and push image to container registry
     inputs:
       command: buildAndPush
-      repository: "oneacrefund/connector-template"
+      repository: "oneacrefund/ph-ee-connector-ams-fineract"
       dockerfile: "$(System.DefaultWorkingDirectory)/Dockerfile"
       containerRegistry: "azurecr-oaf"
       tags: |
@@ -55,5 +55,5 @@ steps:
     displayName: Publish configuration package
     inputs:
       PathtoPublish: $(Build.ArtifactStagingDirectory)
-      ArtifactName: "connector-template"
+      ArtifactName: "ph-ee-connector-ams-fineract"
       publishLocation: "Container"

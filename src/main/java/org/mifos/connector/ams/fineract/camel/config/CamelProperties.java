@@ -1,4 +1,4 @@
-package org.mifos.connector.camel.config;
+package org.mifos.connector.ams.fineract.camel.config;
 
 /**
  * Contains properties related to camel.

@@ -1,9 +1,11 @@
-package org.mifos.connector.util;
+package org.mifos.connector.ams.fineract.util;
 
 /**
  * Contains utility methods for connection.
  */
 public class ConnectionUtils {
+
+    private ConnectionUtils(){}
 
     /**
      * returns camel dsl for applying connection timeout.

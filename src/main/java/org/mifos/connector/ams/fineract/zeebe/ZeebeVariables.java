@@ -1,4 +1,4 @@
-package org.mifos.connector.zeebe;
+package org.mifos.connector.ams.fineract.zeebe;
 
 /**
  * Contains variables referenced in zeebe.

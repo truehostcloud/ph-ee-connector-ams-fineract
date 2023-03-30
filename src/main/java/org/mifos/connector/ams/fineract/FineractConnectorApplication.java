@@ -1,4 +1,4 @@
-package org.mifos.connector;
+package org.mifos.connector.ams.fineract;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Bean;
  * Class containing the main (entry point) method.
  */
 @SpringBootApplication
-public class ConnectorTemplateApplication {
+public class FineractConnectorApplication {
 
     /**
      * Configures the object mapper to be used for serialization and deserialization.
@@ -32,7 +32,7 @@ public class ConnectorTemplateApplication {
     }
 
     public static void main(String[] args) {
-        SpringApplication.run(ConnectorTemplateApplication.class, args);
+        SpringApplication.run(FineractConnectorApplication.class, args);
     }
 
 }

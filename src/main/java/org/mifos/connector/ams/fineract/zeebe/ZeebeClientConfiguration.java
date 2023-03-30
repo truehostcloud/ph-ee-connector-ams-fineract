@@ -1,4 +1,4 @@
-package org.mifos.connector.zeebe;
+package org.mifos.connector.ams.fineract.zeebe;
 
 import io.camunda.zeebe.client.ZeebeClient;
 import org.springframework.beans.factory.annotation.Value;

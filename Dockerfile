@@ -1,6 +1,6 @@
 FROM eclipse-temurin:17 AS build
 
-WORKDIR /ph-ee-connector-template
+WORKDIR /ph-ee-connector-ams-fineract
 
 COPY . .
 
@@ -10,8 +10,8 @@ FROM eclipse-temurin:17
 
 WORKDIR /app
 
-COPY --from=build /ph-ee-connector-template/build/libs/ph-ee-connector-template.jar .
+COPY --from=build /ph-ee-connector-ams-fineract/build/libs/ph-ee-connector-ams-fineract .
 
 EXPOSE 5000
 
-ENTRYPOINT ["java", "-jar", "/app/ph-ee-connector-template.jar"]
+ENTRYPOINT ["java", "-jar", "/app/ph-ee-connector-ams-fineract.jar"]

@@ -1,4 +1,4 @@
-package org.mifos.connector.zeebe;
+package org.mifos.connector.ams.fineract.zeebe;
 
 import javax.annotation.PostConstruct;
 import org.springframework.stereotype.Component;

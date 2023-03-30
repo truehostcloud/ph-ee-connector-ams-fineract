@@ -1,0 +1,32 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '2.7.6'
+	id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+}
+
+group = 'org.mifos'
+sourceCompatibility = '17'
+
+def camelCoreVersion = '3.19.0'
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation "org.apache.camel.springboot:camel-spring-boot-starter:${camelCoreVersion}"
+	implementation 'io.camunda:zeebe-client-java:8.1.4'
+	implementation "org.apache.camel.springboot:camel-jackson-starter:${camelCoreVersion}"
+	implementation "org.apache.camel:camel-endpointdsl:${camelCoreVersion}"
+	implementation "org.apache.camel:camel-undertow:${camelCoreVersion}"
+	implementation "org.apache.camel:camel-http:${camelCoreVersion}"
+	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.14.0'
+	implementation 'org.json:json:20220924'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

@@ -2,7 +2,7 @@
 
 An Account Management System (AMS) connector for Fineract. This connector gets invoked after a
 collection
-has been made on an Erply client's M-PESA wallet. Its primary role is to notify the Erply service
+has been made on a Fineract client's M-PESA wallet. Its primary role is to notify the Fineract service
 about a successful
 payment made by a client.
 
@@ -12,7 +12,7 @@ for more information about Zeebe projects and Payment Hub in general.
 
 ## Badges
 
-[![Build Status](https://dev.azure.com/OAFDev/prd-pipelines/_apis/build/status/one-acre-fund.ph-ee-connector-ams-erply?branchName=main)](https://dev.azure.com/OAFDev/prd-pipelines/_build/latest?definitionId=171&branchName=main)
+[![Build Status](https://dev.azure.com/OAFDev/prd-pipelines/_apis/build/status/one-acre-fund.ph-ee-connector-ams-fineract?branchName=main)](https://dev.azure.com/OAFDev/prd-pipelines/_build/latest?definitionId=171&branchName=main)
 
 ## Tech Stack
 
@@ -26,8 +26,8 @@ for more information about Zeebe projects and Payment Hub in general.
 Clone the project
 
   ```bash
-    git clone https://github.com/one-acre-fund/ph-ee-connector-ams-erply.git
-    cd ph-ee-connector-ams-erply
+    git clone https://github.com/one-acre-fund/ph-ee-connector-ams-fineract.git
+    cd ph-ee-connector-ams-fineract
   ```
 
 This connector is expected to be run alongside other connectors/services. It depends on some of
@@ -46,7 +46,7 @@ the `docker-compose.yml` file. The following components are included:
   collection from a
   client's wallet
 
-A lot more services can be added to the above based on your needs, but to run the erply ams
+A lot more services can be added to the above based on your needs, but to run the Fineract ams
 connector locally,
 the ones listed above are the required minimum.
 Please note that the `docker-compose.yml` file in this repository should NOT be used in a production
@@ -73,7 +73,7 @@ successfully run the project:
 
   Update `src/main/resources/application.yml` with the appropriate values where necessary, or
   provide the
-  values as environment variables in the `services.erply-connector.environment` section of
+  values as environment variables in the `services.fineract-connector.environment` section of
   the `docker-compose.yml`
   file, and run the command below:
 
@@ -83,11 +83,11 @@ successfully run the project:
 
 ## Usage
 
-To initiate a collection request, and have the erply connector notify the erply AMS about the
+To initiate a collection request, and have the Fineract connector notify the Fineract AMS about the
 payment, follow the
 steps below:
 
-- Upload the erply bpmn (found in `src/main/resources/mpesa_flow_erply-oaf.bpmn`) through *
+- Upload the Fineract bpmn (found in `src/main/resources/mpesa_flow_fineract-oaf.bpmn`) through *
   *zeebe-ops** by sending a
   POST
   request to `http://localhost:5001/zeebe/upload` with the file attached.
@@ -119,9 +119,9 @@ steps below:
     }
   }
   ```
-- Check the logs in the **erply-connector** container to see that settlement has been handled, and
+- Check the logs in the **fineract-connector** container to see that settlement has been handled, and
   see the result of
-  calling the Erply service
+  calling the Fineract service
 
 ## Troubleshooting
 

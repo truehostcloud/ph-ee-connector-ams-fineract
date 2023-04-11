@@ -1,3 +1,5 @@
+server:
+  port: 5004
 camel:
   server-port: 5000
   springboot:
@@ -23,3 +25,14 @@ management:
 logging:
   level:
     ROOT: INFO
+
+ams:
+  local:
+    enabled: true
+  timeout: 60000
+
+fineract:
+  base-url: https://localhost:8443/fineract-provider/api/v1
+  endpoint:
+    validation: /paymentHub/verification
+    confirmation: /paymentHub/confirmation

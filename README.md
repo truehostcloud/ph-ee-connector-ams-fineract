@@ -103,7 +103,7 @@ steps below:
             "value": "254113888031"
         },
         {
-            "key": "WALLETID",
+            "key": "fineractAccountID",
             "value": "60649568"
         }
     ],

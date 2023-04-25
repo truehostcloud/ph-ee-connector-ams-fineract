@@ -50,7 +50,7 @@ public class ZeebeWorkers {
         this.producerTemplate = producerTemplate;
     }
 
-    /** Defining workers in charge of calling Fineract validation and confirmation APIs */
+    /** Defining workers in charge of calling Fineract validation and confirmation APIs. */
     @PostConstruct
     public void setupWorkers() {
         // Defining worker in charge of calling Fineract validation API
@@ -73,7 +73,7 @@ public class ZeebeWorkers {
                 checkOperationResultAndSetVariables(PARTY_LOOKUP_FAILED, ex, variables);
 
             } else {
-                variables = setVariablesForDisabledLocalAMS(PARTY_LOOKUP_FAILED);
+                variables = setVariablesForDisabledLocalAms(PARTY_LOOKUP_FAILED);
             }
             zeebeClient.newCompleteCommand(job.getKey()).variables(variables).send();
         }).name(FINERACT_AMS_ZEEBEE_VALIDATION_WORKER_NAME).maxJobsActive(workerMaxJobs).open();
@@ -93,13 +93,14 @@ public class ZeebeWorkers {
                 ex.setProperty(EXTERNAL_ID, variables.get(EXTERNAL_ID));
                 ex.setProperty(TRANSACTION_FAILED, variables.get(TRANSACTION_FAILED));
                 ex.setProperty(ERROR_DESCRIPTION, variables.get(ERROR_DESCRIPTION));
-                ex.setProperty(GET_TRANSACTION_STATUS_RESPONSE_CODE, variables.get(GET_TRANSACTION_STATUS_RESPONSE_CODE));
+                ex.setProperty(GET_TRANSACTION_STATUS_RESPONSE_CODE,
+                        variables.get(GET_TRANSACTION_STATUS_RESPONSE_CODE));
 
                 producerTemplate.send("direct:transfer-settlement-base", ex);
 
                 checkOperationResultAndSetVariables(TRANSFER_SETTLEMENT_FAILED, ex, variables);
             } else {
-                variables = setVariablesForDisabledLocalAMS(TRANSFER_SETTLEMENT_FAILED);
+                variables = setVariablesForDisabledLocalAms(TRANSFER_SETTLEMENT_FAILED);
             }
 
             zeebeClient.newCompleteCommand(job.getKey()).variables(variables).send();
@@ -120,13 +121,13 @@ public class ZeebeWorkers {
     }
 
     /**
-     * Set variables values when the AMS is disalbled
+     * Set variables values when the AMS is disalbled.
      *
      * @param operationName
      *            the operation name
      * @return a map of variables with their values
      */
-    private Map<String, Object> setVariablesForDisabledLocalAMS(String operationName) {
+    private Map<String, Object> setVariablesForDisabledLocalAms(String operationName) {
         Map<String, Object> variables = new HashMap<>();
         variables.put(operationName, false);
         variables.put(ERROR_INFORMATION, "AMS Local is disabled");
@@ -136,7 +137,7 @@ public class ZeebeWorkers {
     }
 
     /**
-     * Check result of the API call and set variables in Zeebe accordingly
+     * Check result of the API call and set variables in Zeebe accordingly.
      *
      * @param operationName
      *            the operation name
@@ -153,7 +154,8 @@ public class ZeebeWorkers {
             variables.put(operationName, true);
             variables.put(ERROR_INFORMATION, ex.getIn().getBody(String.class));
             variables.put(ERROR_CODE, ex.getIn().getHeader("CamelHttpResponseCode"));
-            variables.put(ERROR_DESCRIPTION, ConnectionUtils.parseErrorDescriptionFromJsonPayload(ex.getIn().getBody(String.class)));
+            variables.put(ERROR_DESCRIPTION,
+                    ConnectionUtils.parseErrorDescriptionFromJsonPayload(ex.getIn().getBody(String.class)));
         }
     }
 }

@@ -20,10 +20,18 @@ public class ConnectionUtils {
      * @return camel dsl string with timeout
      */
     public static String getConnectionTimeoutDsl(final int timeout) {
-        String base = "httpClient.connectTimeout={}&httpClient.connectionRequestTimeout={}" + "&httpClient.socketTimeout={}";
+        String base = "httpClient.connectTimeout={}&httpClient.connectionRequestTimeout={}"
+                + "&httpClient.socketTimeout={}";
         return base.replace("{}", "" + timeout);
     }
 
+    /**
+     * Parse the error description from the JSON.
+     *
+     * @param errorJson
+     *            the JSON containing the error
+     * @return the error description
+     */
     public static String parseErrorDescriptionFromJsonPayload(String errorJson) {
         if (errorJson == null || errorJson.isEmpty()) {
             return "Internal Server Error";
@@ -43,6 +51,15 @@ public class ConnectionUtils {
         return "Internal Server Error";
     }
 
+    /**
+     * Convert custom data.
+     *
+     * @param customData
+     *            {@link JSONArray}
+     * @param key
+     *            the custom data key
+     * @return the custom data value
+     */
     public static String convertCustomData(JSONArray customData, String key) {
         for (Object obj : customData) {
             JSONObject item = (JSONObject) obj;

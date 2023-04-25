@@ -44,9 +44,9 @@ public class FineractRouteBuilder extends RouteBuilder {
     @Override
     public void configure() throws Exception {
         from("direct:transfer-validation-base").id("transfer-validation-base")
-                .log(LoggingLevel.INFO, "## Starting transfer Validation base route").to("direct:transfer-validation").choice()
-                .when(header(CAMEL_HTTP_RESPONSE_CODE).isEqualTo("200")).log(LoggingLevel.INFO, "Validation successful")
-                .process(exchange -> {
+                .log(LoggingLevel.INFO, "## Starting transfer Validation base route").to("direct:transfer-validation")
+                .choice().when(header(CAMEL_HTTP_RESPONSE_CODE).isEqualTo("200"))
+                .log(LoggingLevel.INFO, "Validation successful").process(exchange -> {
                     // processing success case
                     exchange.setProperty(PARTY_LOOKUP_FAILED, false);
                     exchange.setProperty(ACCT_HOLDING_INSTITUTION_ID_VARIABLE_NAME,
@@ -67,9 +67,10 @@ public class FineractRouteBuilder extends RouteBuilder {
                     exchange.setProperty(MSISDN_VARIABLE_NAME, exchange.getProperty(MSISDN_VARIABLE_NAME));
                     log.debug("Fineract Validation Failure");
                 });
-        from("direct:transfer-validation").id("transfer-validation").log(LoggingLevel.INFO, "## Starting transfer Validation route")
-                .removeHeader("*").setHeader(Exchange.HTTP_METHOD, constant("POST")).setHeader("Content-Type", constant("application/json"))
-                .setBody(exchange -> {
+        from("direct:transfer-validation").id("transfer-validation")
+                .log(LoggingLevel.INFO, "## Starting transfer Validation route").removeHeader("*")
+                .setHeader(Exchange.HTTP_METHOD, constant("POST"))
+                .setHeader("Content-Type", constant("application/json")).setBody(exchange -> {
                     FineractRequestDto verificationRequestDto;
                     if (exchange.getProperty(CHANNEL_REQUEST) != null) {
                         JSONObject channelRequest = (JSONObject) exchange.getProperty(CHANNEL_REQUEST);
@@ -89,37 +90,43 @@ public class FineractRouteBuilder extends RouteBuilder {
                     }
                     log.debug("Validation request DTO: {}", verificationRequestDto);
                     return verificationRequestDto;
-                }).marshal().json(JsonLibrary.Jackson).toD(getValidationUrl() + "?" + ConnectionUtils.getConnectionTimeoutDsl(amsTimeout))
+                }).marshal().json(JsonLibrary.Jackson)
+                .toD(getValidationUrl() + "?" + ConnectionUtils.getConnectionTimeoutDsl(amsTimeout))
                 .log(LoggingLevel.INFO, "Fineract verification api response: \n\n..\n\n..\n\n.. ${body}");
 
-        from("direct:transfer-settlement-base").id("transfer-settlement-base").log(LoggingLevel.INFO, "## Transfer Settlement route")
-                .to("direct:transfer-settlement").choice().when(header(CAMEL_HTTP_RESPONSE_CODE).isEqualTo("200"))
+        from("direct:transfer-settlement-base").id("transfer-settlement-base")
+                .log(LoggingLevel.INFO, "## Transfer Settlement route").to("direct:transfer-settlement").choice()
+                .when(header(CAMEL_HTTP_RESPONSE_CODE).isEqualTo("200"))
                 .log(LoggingLevel.INFO, "Call to Fineract AMS for settlement was successful").process(exchange -> {
                     // processing success case
                     // check if actual transaction was also successful
                     Boolean transactionFailed = exchange.getProperty(TRANSACTION_FAILED, Boolean.class);
                     boolean transferSettlementFailed = !Boolean.FALSE.equals(transactionFailed);
                     exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, transferSettlementFailed);
-                }).otherwise().log(LoggingLevel.ERROR, "Call to  Fineract AMS for settlement was unsuccessful").process(exchange ->
+                }).otherwise().log(LoggingLevel.ERROR, "Call to  Fineract AMS for settlement was unsuccessful")
+                .process(exchange ->
                 // processing unsuccessful case
                 exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, true));
 
-        from("direct:transfer-settlement").id("transfer-settlement").log(LoggingLevel.INFO, "## Starting transfer settlement route")
-                .removeHeader("*").setHeader(Exchange.HTTP_METHOD, constant("POST")).setHeader("Content-Type", constant("application/json"))
-                .setBody(exchange -> {
+        from("direct:transfer-settlement").id("transfer-settlement")
+                .log(LoggingLevel.INFO, "## Starting transfer settlement route").removeHeader("*")
+                .setHeader(Exchange.HTTP_METHOD, constant("POST"))
+                .setHeader("Content-Type", constant("application/json")).setBody(exchange -> {
                     FineractConfirmationRequestDto confirmationRequestDto;
                     if (exchange.getProperty(CHANNEL_REQUEST) != null) {
                         JSONObject channelRequest = (JSONObject) exchange.getProperty(CHANNEL_REQUEST);
                         String transactionId = exchange.getProperty(TRANSACTION_ID, String.class);
                         String externalId = exchange.getProperty(EXTERNAL_ID, String.class);
-                        confirmationRequestDto = FineractConfirmationRequestDto.fromChannelRequest(channelRequest, transactionId);
+                        confirmationRequestDto = FineractConfirmationRequestDto.fromChannelRequest(channelRequest,
+                                transactionId);
                         confirmationRequestDto.setStatus("successful");
                         confirmationRequestDto.setReceiptId(externalId);
 
                     } else {
                         JSONObject payBillRequest = new JSONObject(exchange.getIn().getBody(String.class));
 
-                        confirmationRequestDto = FineractConfirmationRequestDto.convertPayBillPayloadToAmsPayload(payBillRequest);
+                        confirmationRequestDto = FineractConfirmationRequestDto
+                                .convertPayBillPayloadToAmsPayload(payBillRequest);
                         exchange.setProperty(TRANSACTION_ID, confirmationRequestDto.getRemoteTransactionId());
                     }
                     log.info("Fineract Confirmation request DTO: \n\n\n {}", confirmationRequestDto);

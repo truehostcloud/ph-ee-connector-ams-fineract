@@ -7,7 +7,11 @@ import lombok.Setter;
 import org.json.JSONObject;
 import org.springframework.beans.BeanUtils;
 
-/** Class representing the request body of Fineract confirmation API */
+/**
+ * Class representing the request body of Fineract confirmation API.
+ *
+ * @author amy.muhimpundu
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -36,6 +40,13 @@ public class FineractConfirmationRequestDto extends FineractRequestDto {
         return dto;
     }
 
+    /**
+     * Convert the paybill payload to AMS payload.
+     *
+     * @param payload
+     *            the JSON payload
+     * @return {@link FineractRequestDto}
+     */
     public static FineractConfirmationRequestDto convertPayBillPayloadToAmsPayload(JSONObject payload) {
         FineractConfirmationRequestDto dto = new FineractConfirmationRequestDto();
 
@@ -46,8 +57,9 @@ public class FineractConfirmationRequestDto extends FineractRequestDto {
 
     @Override
     public String toString() {
-        return "FineractConfirmationRequestDto{" + "remoteTransactionId='" + super.getRemoteTransactionId() + '\'' + ", phoneNumber='"
-                + super.getPhoneNumber() + '\'' + ", account='" + super.getAccount() + '\'' + ", amount=" + super.getAmount()
-                + ", currency='" + super.getCurrency() + '\'' + ", status='" + status + '\'' + ", receiptId='" + receiptId + '\'' + '}';
+        return "FineractConfirmationRequestDto{" + "remoteTransactionId='" + super.getRemoteTransactionId() + '\''
+                + ", phoneNumber='" + super.getPhoneNumber() + '\'' + ", account='" + super.getAccount() + '\''
+                + ", amount=" + super.getAmount() + ", currency='" + super.getCurrency() + '\'' + ", status='" + status
+                + '\'' + ", receiptId='" + receiptId + '\'' + '}';
     }
 }

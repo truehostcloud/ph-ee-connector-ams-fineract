@@ -92,12 +92,12 @@ allprojects {
                     it.replaceAll(/(?:public |protected |private |abstract |default |static |final |transient |volatile |synchronized |native |strictfp ){2,}/, {
                         // Sort the modifiers according to the ranking above
                         it.split().sort({ modifierRanking[it] }).join(' ') + ' '
-            }
+                    }
                     )
-        }
+                }
                 )
-    }
-}
+            }
+        }
 
         lineEndings 'UNIX'
     }

@@ -8,9 +8,9 @@ RUN ./gradlew bootJar
 
 FROM eclipse-temurin:17
 
-WORKDIR /app
+COPY --from=build /ph-ee-connector-ams-fineract/build/libs/ph-ee-connector-ams-fineract*.jar /app/ph-ee-connector-ams-fineract.jar
 
-COPY --from=build /ph-ee-connector-ams-fineract/build/libs/ph-ee-connector-ams-fineract .
+WORKDIR /app
 
 EXPOSE 5000
 

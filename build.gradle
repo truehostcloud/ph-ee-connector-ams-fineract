@@ -66,7 +66,7 @@ allprojects {
             targetExclude '**/build/**', '**/bin/**', '**/out/**'
             importOrder() //sort imports alphabetically
             removeUnusedImports()
-            googleJavaFormat()
+            eclipse().configFile "$rootDir/config/dev-formatter.xml"
             endWithNewline()
             trimTrailingWhitespace()
 

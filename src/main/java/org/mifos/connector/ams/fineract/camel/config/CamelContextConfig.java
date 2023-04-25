@@ -12,39 +12,40 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class CamelContextConfig {
 
-  @Value("${camel.server-port}")
-  private int serverPort;
+    @Value("${camel.server-port}")
+    private int serverPort;
 
-  /**
-   * Configures the camel context to be used.
-   *
-   * @return {@link CamelContextConfiguration}
-   */
-  @Bean
-  CamelContextConfiguration contextConfiguration() {
-    return new CamelContextConfiguration() {
-      @Override
-      public void beforeApplicationStart(CamelContext camelContext) {
-        camelContext.setTracing(false);
-        camelContext.setMessageHistory(false);
-        camelContext.setStreamCaching(true);
-        camelContext.disableJMX();
+    /**
+     * Configures the camel context to be used.
+     *
+     * @return {@link CamelContextConfiguration}
+     */
+    @Bean
+    CamelContextConfiguration contextConfiguration() {
+        return new CamelContextConfiguration() {
 
-        RestConfiguration rest = new RestConfiguration();
-        camelContext.setRestConfiguration(rest);
-        rest.setComponent("undertow");
-        rest.setProducerComponent("undertow");
-        rest.setPort(serverPort);
-        rest.setBindingMode(RestConfiguration.RestBindingMode.json);
-        rest.setDataFormatProperties(new HashMap<>());
-        rest.getDataFormatProperties().put("prettyPrint", "true");
-        rest.setScheme("http");
-      }
+            @Override
+            public void beforeApplicationStart(CamelContext camelContext) {
+                camelContext.setTracing(false);
+                camelContext.setMessageHistory(false);
+                camelContext.setStreamCaching(true);
+                camelContext.disableJMX();
 
-      @Override
-      public void afterApplicationStart(CamelContext camelContext) {
-        // empty
-      }
-    };
-  }
+                RestConfiguration rest = new RestConfiguration();
+                camelContext.setRestConfiguration(rest);
+                rest.setComponent("undertow");
+                rest.setProducerComponent("undertow");
+                rest.setPort(serverPort);
+                rest.setBindingMode(RestConfiguration.RestBindingMode.json);
+                rest.setDataFormatProperties(new HashMap<>());
+                rest.getDataFormatProperties().put("prettyPrint", "true");
+                rest.setScheme("http");
+            }
+
+            @Override
+            public void afterApplicationStart(CamelContext camelContext) {
+                // empty
+            }
+        };
+    }
 }

@@ -32,38 +32,34 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class ZeebeWorkers {
-  private final ZeebeClient zeebeClient;
-  private final CamelContext camelContext;
-  private final ProducerTemplate producerTemplate;
 
-  // This value determines if an API call to Fineract AMS will be made
-  @Value("${ams.local.enabled:false}")
-  private boolean isAmsLocalEnabled;
+    private final ZeebeClient zeebeClient;
+    private final CamelContext camelContext;
+    private final ProducerTemplate producerTemplate;
 
-  @Value("${zeebe.client.evenly-allocated-max-jobs}")
-  private int workerMaxJobs;
+    // This value determines if an API call to Fineract AMS will be made
+    @Value("${ams.local.enabled:false}")
+    private boolean isAmsLocalEnabled;
 
-  public ZeebeWorkers(
-      ZeebeClient zeebeClient, CamelContext camelContext, ProducerTemplate producerTemplate) {
-    this.zeebeClient = zeebeClient;
-    this.camelContext = camelContext;
-    this.producerTemplate = producerTemplate;
-  }
+    @Value("${zeebe.client.evenly-allocated-max-jobs}")
+    private int workerMaxJobs;
 
-  /** Defining workers in charge of calling Fineract validation and confirmation APIs */
-  @PostConstruct
-  public void setupWorkers() {
-    // Defining worker in charge of calling Fineract validation API
-    zeebeClient
-        .newWorker()
-        .jobType(FINERACT_AMS_ZEEBEE_VALIDATION_WORKER_NAME)
-        .handler(
-            (client, job) -> {
-              logWorkerDetails(job);
+    public ZeebeWorkers(ZeebeClient zeebeClient, CamelContext camelContext, ProducerTemplate producerTemplate) {
+        this.zeebeClient = zeebeClient;
+        this.camelContext = camelContext;
+        this.producerTemplate = producerTemplate;
+    }
 
-              Map<String, Object> variables;
+    /** Defining workers in charge of calling Fineract validation and confirmation APIs */
+    @PostConstruct
+    public void setupWorkers() {
+        // Defining worker in charge of calling Fineract validation API
+        zeebeClient.newWorker().jobType(FINERACT_AMS_ZEEBEE_VALIDATION_WORKER_NAME).handler((client, job) -> {
+            logWorkerDetails(job);
 
-              if (isAmsLocalEnabled) {
+            Map<String, Object> variables;
+
+            if (isAmsLocalEnabled) {
                 Exchange ex = new DefaultExchange(camelContext);
 
                 variables = job.getVariablesAsMap();
@@ -76,26 +72,19 @@ public class ZeebeWorkers {
 
                 checkOperationResultAndSetVariables(PARTY_LOOKUP_FAILED, ex, variables);
 
-              } else {
+            } else {
                 variables = setVariablesForDisabledLocalAMS(PARTY_LOOKUP_FAILED);
-              }
-              zeebeClient.newCompleteCommand(job.getKey()).variables(variables).send();
-            })
-        .name(FINERACT_AMS_ZEEBEE_VALIDATION_WORKER_NAME)
-        .maxJobsActive(workerMaxJobs)
-        .open();
+            }
+            zeebeClient.newCompleteCommand(job.getKey()).variables(variables).send();
+        }).name(FINERACT_AMS_ZEEBEE_VALIDATION_WORKER_NAME).maxJobsActive(workerMaxJobs).open();
 
-    // Defining worker in charge of calling Fineract confirmation API
-    zeebeClient
-        .newWorker()
-        .jobType(FINERACT_AMS_ZEEBEE_SETTLEMENT_WORKER_NAME)
-        .handler(
-            (client, job) -> {
-              logWorkerDetails(job);
+        // Defining worker in charge of calling Fineract confirmation API
+        zeebeClient.newWorker().jobType(FINERACT_AMS_ZEEBEE_SETTLEMENT_WORKER_NAME).handler((client, job) -> {
+            logWorkerDetails(job);
 
-              Map<String, Object> variables;
+            Map<String, Object> variables;
 
-              if (isAmsLocalEnabled) {
+            if (isAmsLocalEnabled) {
                 Exchange ex = new DefaultExchange(camelContext);
                 variables = job.getVariablesAsMap();
                 JSONObject channelRequest = new JSONObject((String) variables.get(CHANNEL_REQUEST));
@@ -104,71 +93,67 @@ public class ZeebeWorkers {
                 ex.setProperty(EXTERNAL_ID, variables.get(EXTERNAL_ID));
                 ex.setProperty(TRANSACTION_FAILED, variables.get(TRANSACTION_FAILED));
                 ex.setProperty(ERROR_DESCRIPTION, variables.get(ERROR_DESCRIPTION));
-                ex.setProperty(
-                    GET_TRANSACTION_STATUS_RESPONSE_CODE,
-                    variables.get(GET_TRANSACTION_STATUS_RESPONSE_CODE));
+                ex.setProperty(GET_TRANSACTION_STATUS_RESPONSE_CODE, variables.get(GET_TRANSACTION_STATUS_RESPONSE_CODE));
 
                 producerTemplate.send("direct:transfer-settlement-base", ex);
 
                 checkOperationResultAndSetVariables(TRANSFER_SETTLEMENT_FAILED, ex, variables);
-              } else {
+            } else {
                 variables = setVariablesForDisabledLocalAMS(TRANSFER_SETTLEMENT_FAILED);
-              }
+            }
 
-              zeebeClient.newCompleteCommand(job.getKey()).variables(variables).send();
-            })
-        .name(FINERACT_AMS_ZEEBEE_SETTLEMENT_WORKER_NAME)
-        .maxJobsActive(workerMaxJobs)
-        .open();
-  }
-
-  private void logWorkerDetails(ActivatedJob job) {
-    JSONObject jsonJob = new JSONObject();
-    jsonJob.put("bpmnProcessId", job.getBpmnProcessId());
-    jsonJob.put("elementInstanceKey", job.getElementInstanceKey());
-    jsonJob.put("jobKey", job.getKey());
-    jsonJob.put("jobType", job.getType());
-    jsonJob.put("workflowElementId", job.getElementId());
-    jsonJob.put("workflowDefinitionVersion", job.getProcessDefinitionVersion());
-    jsonJob.put("workflowKey", job.getProcessDefinitionKey());
-    jsonJob.put("workflowInstanceKey", job.getProcessInstanceKey());
-    log.info("Job started: {}", jsonJob.toString(4));
-  }
-
-  /**
-   * Set variables values when the AMS is disalbled
-   *
-   * @param operationName the operation name
-   * @return a map of variables with their values
-   */
-  private Map<String, Object> setVariablesForDisabledLocalAMS(String operationName) {
-    Map<String, Object> variables = new HashMap<>();
-    variables.put(operationName, false);
-    variables.put(ERROR_INFORMATION, "AMS Local is disabled");
-    variables.put(ERROR_CODE, null);
-    variables.put(ERROR_DESCRIPTION, "AMS Local is disabled");
-    return variables;
-  }
-
-  /**
-   * Check result of the API call and set variables in Zeebe accordingly
-   *
-   * @param operationName the operation name
-   * @param ex {@link Exchange}
-   * @param variables a map of existing variables to be updated
-   */
-  private void checkOperationResultAndSetVariables(
-      String operationName, Exchange ex, Map<String, Object> variables) {
-    Boolean isOperationFailed = ex.getProperty(operationName, boolean.class);
-
-    variables.put(operationName, isOperationFailed);
-    if (isOperationFailed == null || isOperationFailed) {
-      variables.put(operationName, true);
-      variables.put(ERROR_INFORMATION, ex.getIn().getBody(String.class));
-      variables.put(ERROR_CODE, ex.getIn().getHeader("CamelHttpResponseCode"));
-      variables.put(
-          ERROR_DESCRIPTION,
-          ConnectionUtils.parseErrorDescriptionFromJsonPayload(ex.getIn().getBody(String.class)));
+            zeebeClient.newCompleteCommand(job.getKey()).variables(variables).send();
+        }).name(FINERACT_AMS_ZEEBEE_SETTLEMENT_WORKER_NAME).maxJobsActive(workerMaxJobs).open();
     }
-  }
+
+    private void logWorkerDetails(ActivatedJob job) {
+        JSONObject jsonJob = new JSONObject();
+        jsonJob.put("bpmnProcessId", job.getBpmnProcessId());
+        jsonJob.put("elementInstanceKey", job.getElementInstanceKey());
+        jsonJob.put("jobKey", job.getKey());
+        jsonJob.put("jobType", job.getType());
+        jsonJob.put("workflowElementId", job.getElementId());
+        jsonJob.put("workflowDefinitionVersion", job.getProcessDefinitionVersion());
+        jsonJob.put("workflowKey", job.getProcessDefinitionKey());
+        jsonJob.put("workflowInstanceKey", job.getProcessInstanceKey());
+        log.info("Job started: {}", jsonJob.toString(4));
+    }
+
+    /**
+     * Set variables values when the AMS is disalbled
+     *
+     * @param operationName
+     *            the operation name
+     * @return a map of variables with their values
+     */
+    private Map<String, Object> setVariablesForDisabledLocalAMS(String operationName) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put(operationName, false);
+        variables.put(ERROR_INFORMATION, "AMS Local is disabled");
+        variables.put(ERROR_CODE, null);
+        variables.put(ERROR_DESCRIPTION, "AMS Local is disabled");
+        return variables;
+    }
+
+    /**
+     * Check result of the API call and set variables in Zeebe accordingly
+     *
+     * @param operationName
+     *            the operation name
+     * @param ex
+     *            {@link Exchange}
+     * @param variables
+     *            a map of existing variables to be updated
+     */
+    private void checkOperationResultAndSetVariables(String operationName, Exchange ex, Map<String, Object> variables) {
+        Boolean isOperationFailed = ex.getProperty(operationName, boolean.class);
+
+        variables.put(operationName, isOperationFailed);
+        if (isOperationFailed == null || isOperationFailed) {
+            variables.put(operationName, true);
+            variables.put(ERROR_INFORMATION, ex.getIn().getBody(String.class));
+            variables.put(ERROR_CODE, ex.getIn().getHeader("CamelHttpResponseCode"));
+            variables.put(ERROR_DESCRIPTION, ConnectionUtils.parseErrorDescriptionFromJsonPayload(ex.getIn().getBody(String.class)));
+        }
+    }
 }

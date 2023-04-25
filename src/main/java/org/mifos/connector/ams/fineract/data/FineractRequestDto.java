@@ -14,84 +14,63 @@ import org.json.JSONObject;
 @NoArgsConstructor
 public class FineractRequestDto {
 
-  @JsonProperty("RemoteTransactionId")
-  private String remoteTransactionId;
+    @JsonProperty("RemoteTransactionId")
+    private String remoteTransactionId;
 
-  @JsonProperty("PhoneNumber")
-  private String phoneNumber;
+    @JsonProperty("PhoneNumber")
+    private String phoneNumber;
 
-  @JsonProperty("Account")
-  private String account;
+    @JsonProperty("Account")
+    private String account;
 
-  @JsonProperty("Amount")
-  private Long amount;
+    @JsonProperty("Amount")
+    private Long amount;
 
-  @JsonProperty("Currency")
-  private String currency;
+    @JsonProperty("Currency")
+    private String currency;
 
-  /**
-   * Creates a {@link FineractRequestDto} using data in the channel request.
-   *
-   * @param channelRequest contains data related to the transaction
-   * @param transactionId the transaction identifier
-   * @return {@link FineractRequestDto}
-   */
-  public static FineractRequestDto fromChannelRequest(
-      JSONObject channelRequest, String transactionId) {
-    FineractRequestDto dto = new FineractRequestDto();
+    /**
+     * Creates a {@link FineractRequestDto} using data in the channel request.
+     *
+     * @param channelRequest
+     *            contains data related to the transaction
+     * @param transactionId
+     *            the transaction identifier
+     * @return {@link FineractRequestDto}
+     */
+    public static FineractRequestDto fromChannelRequest(JSONObject channelRequest, String transactionId) {
+        FineractRequestDto dto = new FineractRequestDto();
 
-    String phoneNumber =
-        channelRequest
-            .getJSONObject("payer")
-            .getJSONObject("partyIdInfo")
-            .getString("partyIdentifier");
-    String accountId =
-        channelRequest
-            .getJSONObject("payee")
-            .getJSONObject("partyIdInfo")
-            .getString("partyIdentifier");
-    JSONObject amountJson = channelRequest.getJSONObject("amount");
+        String phoneNumber = channelRequest.getJSONObject("payer").getJSONObject("partyIdInfo").getString("partyIdentifier");
+        String accountId = channelRequest.getJSONObject("payee").getJSONObject("partyIdInfo").getString("partyIdentifier");
+        JSONObject amountJson = channelRequest.getJSONObject("amount");
 
-    dto.setRemoteTransactionId(transactionId);
-    dto.setAmount(amountJson.getLong("amount"));
-    dto.setPhoneNumber(phoneNumber);
-    dto.setCurrency(amountJson.getString("currency"));
-    dto.setAccount(accountId);
+        dto.setRemoteTransactionId(transactionId);
+        dto.setAmount(amountJson.getLong("amount"));
+        dto.setPhoneNumber(phoneNumber);
+        dto.setCurrency(amountJson.getString("currency"));
+        dto.setAccount(accountId);
 
-    return dto;
-  }
+        return dto;
+    }
 
-  public static FineractRequestDto convertPayBillPayloadToAmsPayload(JSONObject payload) {
-    String transactionId = convertCustomData(payload.getJSONArray("customData"), "transactionId");
-    String currency = convertCustomData(payload.getJSONArray("customData"), "currency");
-    String walletMsisdn = payload.getJSONObject("secondaryIdentifier").getString("value");
-    String accountID = payload.getJSONObject("primaryIdentifier").getString("value");
-    FineractRequestDto validationRequestDTO = new FineractRequestDto();
-    validationRequestDTO.setAccount(accountID);
-    validationRequestDTO.setAmount(1L);
-    validationRequestDTO.setCurrency(currency);
-    validationRequestDTO.setRemoteTransactionId(transactionId);
-    validationRequestDTO.setPhoneNumber(walletMsisdn);
-    return validationRequestDTO;
-  }
+    public static FineractRequestDto convertPayBillPayloadToAmsPayload(JSONObject payload) {
+        String transactionId = convertCustomData(payload.getJSONArray("customData"), "transactionId");
+        String currency = convertCustomData(payload.getJSONArray("customData"), "currency");
+        String walletMsisdn = payload.getJSONObject("secondaryIdentifier").getString("value");
+        String accountID = payload.getJSONObject("primaryIdentifier").getString("value");
+        FineractRequestDto validationRequestDTO = new FineractRequestDto();
+        validationRequestDTO.setAccount(accountID);
+        validationRequestDTO.setAmount(1L);
+        validationRequestDTO.setCurrency(currency);
+        validationRequestDTO.setRemoteTransactionId(transactionId);
+        validationRequestDTO.setPhoneNumber(walletMsisdn);
+        return validationRequestDTO;
+    }
 
-  @Override
-  public String toString() {
-    return "FineractConfirmationRequestDto{"
-        + "remoteTransactionId='"
-        + remoteTransactionId
-        + '\''
-        + ", phoneNumber='"
-        + phoneNumber
-        + '\''
-        + ", account='"
-        + account
-        + '\''
-        + ", amount="
-        + amount
-        + ", currency='"
-        + currency
-        + '\''
-        + '}';
-  }
+    @Override
+    public String toString() {
+        return "FineractConfirmationRequestDto{" + "remoteTransactionId='" + remoteTransactionId + '\'' + ", phoneNumber='" + phoneNumber
+                + '\'' + ", account='" + account + '\'' + ", amount=" + amount + ", currency='" + currency + '\'' + '}';
+    }
 }

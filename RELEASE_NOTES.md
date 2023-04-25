@@ -4,4 +4,3 @@ Release Notes
 
     * Fineract AMS connector
             * [SER-1568] - Project setup + Adding workers for Fineract verification and confirmation
-

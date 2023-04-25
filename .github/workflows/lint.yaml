@@ -97,4 +97,3 @@ jobs:
           commit-message-subject-max-length: 120
           commit-message-body-min-length: 5
           commit-message-body-max-length: 120
-

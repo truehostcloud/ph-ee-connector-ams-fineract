@@ -8,9 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Configuration class for camel context.
- */
+/** Configuration class for camel context. */
 @Configuration
 public class CamelContextConfig {
 
@@ -25,6 +23,7 @@ public class CamelContextConfig {
     @Bean
     CamelContextConfiguration contextConfiguration() {
         return new CamelContextConfiguration() {
+
             @Override
             public void beforeApplicationStart(CamelContext camelContext) {
                 camelContext.setTracing(false);

@@ -91,7 +91,8 @@ public class FineractRouteBuilder extends RouteBuilder {
                     log.debug("Validation request DTO: {}", verificationRequestDto);
                     return verificationRequestDto;
                 }).marshal().json(JsonLibrary.Jackson)
-                .toD(getValidationUrl() + "?" + ConnectionUtils.getConnectionTimeoutDsl(amsTimeout))
+                .toD(getValidationUrl() + "?bridgeEndpoint=true&throwExceptionOnFailure=false&"
+                        + ConnectionUtils.getConnectionTimeoutDsl(amsTimeout))
                 .log(LoggingLevel.INFO, "Fineract verification api response: \n\n..\n\n..\n\n.. ${body}");
 
         from("direct:transfer-settlement-base").id("transfer-settlement-base")

@@ -35,7 +35,7 @@ public class FineractConfirmationRequestDto extends FineractRequestDto {
     public static FineractConfirmationRequestDto fromChannelRequest(JSONObject channelRequest, String transactionId) {
         FineractConfirmationRequestDto dto = new FineractConfirmationRequestDto();
 
-        BeanUtils.copyProperties(FineractRequestDto.fromChannelRequest(channelRequest, transactionId), dto);
+        BeanUtils.copyProperties(FineractRequestDto.fromChannelRequest(channelRequest, transactionId, null), dto);
 
         return dto;
     }

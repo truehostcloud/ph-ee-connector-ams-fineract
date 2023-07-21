@@ -6,6 +6,7 @@ import static org.mifos.connector.ams.fineract.camel.config.CamelProperties.CAME
 import static org.mifos.connector.ams.fineract.camel.config.CamelProperties.CHANNEL_REQUEST;
 import static org.mifos.connector.ams.fineract.camel.config.CamelProperties.CURRENCY_VARIABLE_NAME;
 import static org.mifos.connector.ams.fineract.camel.config.CamelProperties.MSISDN_VARIABLE_NAME;
+import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.CUSTOM_DATA;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.EXTERNAL_ID;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.PARTY_LOOKUP_FAILED;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.TRANSACTION_FAILED;
@@ -17,6 +18,7 @@ import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.dataformat.JsonLibrary;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.mifos.connector.ams.fineract.data.FineractConfirmationRequestDto;
 import org.mifos.connector.ams.fineract.data.FineractRequestDto;
@@ -74,9 +76,9 @@ public class FineractRouteBuilder extends RouteBuilder {
                     FineractRequestDto verificationRequestDto;
                     if (exchange.getProperty(CHANNEL_REQUEST) != null) {
                         JSONObject channelRequest = (JSONObject) exchange.getProperty(CHANNEL_REQUEST);
-
+                        JSONArray customData = exchange.getProperty(CUSTOM_DATA, JSONArray.class);
                         verificationRequestDto = FineractRequestDto.fromChannelRequest(channelRequest,
-                                exchange.getProperty(TRANSACTION_ID, String.class));
+                                exchange.getProperty(TRANSACTION_ID, String.class), customData);
                     } else {
                         JSONObject payBillRequest = new JSONObject(exchange.getIn().getBody(String.class));
 

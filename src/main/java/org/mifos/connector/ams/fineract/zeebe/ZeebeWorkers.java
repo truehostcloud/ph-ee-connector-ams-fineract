@@ -1,6 +1,7 @@
 package org.mifos.connector.ams.fineract.zeebe;
 
 import static org.mifos.connector.ams.fineract.camel.config.CamelProperties.CHANNEL_REQUEST;
+import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.CUSTOM_DATA;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.ERROR_CODE;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.ERROR_DESCRIPTION;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.ERROR_INFORMATION;
@@ -23,6 +24,7 @@ import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.support.DefaultExchange;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.mifos.connector.ams.fineract.util.ConnectionUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -67,7 +69,11 @@ public class ZeebeWorkers {
                 JSONObject channelRequest = new JSONObject((String) variables.get(CHANNEL_REQUEST));
                 ex.setProperty(CHANNEL_REQUEST, channelRequest);
                 ex.setProperty(TRANSACTION_ID, variables.get(TRANSACTION_ID));
-
+                String customDataString = (String) variables.get(CUSTOM_DATA);
+                if (customDataString != null && !customDataString.isBlank()) {
+                    JSONArray customData = new JSONArray(customDataString);
+                    ex.setProperty(CUSTOM_DATA, customData);
+                }
                 producerTemplate.send("direct:transfer-validation-base", ex);
 
                 checkOperationResultAndSetVariables(PARTY_LOOKUP_FAILED, ex, variables);

@@ -1,11 +1,13 @@
 package org.mifos.connector.ams.fineract.data;
 
 import static org.mifos.connector.ams.fineract.util.ConnectionUtils.convertCustomData;
+import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.CUSTOM_DATA;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
@@ -33,6 +35,9 @@ public class FineractRequestDto {
     @JsonProperty("Currency")
     private String currency;
 
+    @JsonProperty("LoanId")
+    private Long loanId;
+
     /**
      * Creates a {@link FineractRequestDto} using data in the channel request.
      *
@@ -40,9 +45,12 @@ public class FineractRequestDto {
      *            contains data related to the transaction
      * @param transactionId
      *            the transaction identifier
+     * @param customData
+     *            holds custom data such as loanId
      * @return {@link FineractRequestDto}
      */
-    public static FineractRequestDto fromChannelRequest(JSONObject channelRequest, String transactionId) {
+    public static FineractRequestDto fromChannelRequest(JSONObject channelRequest, String transactionId,
+            JSONArray customData) {
         FineractRequestDto dto = new FineractRequestDto();
 
         String phoneNumber = channelRequest.getJSONObject("payer").getJSONObject("partyIdInfo")
@@ -56,7 +64,7 @@ public class FineractRequestDto {
         dto.setPhoneNumber(phoneNumber);
         dto.setCurrency(amountJson.getString("currency"));
         dto.setAccount(accountId);
-
+        dto.setLoanIdFromCustomData(customData);
         return dto;
     }
 
@@ -78,13 +86,29 @@ public class FineractRequestDto {
         validationRequestDto.setCurrency(currency);
         validationRequestDto.setRemoteTransactionId(transactionId);
         validationRequestDto.setPhoneNumber(walletMsisdn);
+        validationRequestDto.setLoanIdFromCustomData(payload.getJSONArray(CUSTOM_DATA));
         return validationRequestDto;
+    }
+
+    /**
+     * Sets the loan ID to the value retrieved from custom data.
+     *
+     * @param customData
+     *            {@link JSONArray} containing the loanId value
+     */
+    private void setLoanIdFromCustomData(JSONArray customData) {
+        if (customData != null) {
+            String loanId = convertCustomData(customData, "loanId");
+            if (loanId != null && !loanId.isBlank()) {
+                this.loanId = Long.valueOf(loanId);
+            }
+        }
     }
 
     @Override
     public String toString() {
-        return "FineractConfirmationRequestDto{" + "remoteTransactionId='" + remoteTransactionId + '\''
-                + ", phoneNumber='" + phoneNumber + '\'' + ", account='" + account + '\'' + ", amount=" + amount
-                + ", currency='" + currency + '\'' + '}';
+        return "FineractRequestDto{" + "remoteTransactionId='" + remoteTransactionId + '\'' + ", phoneNumber='"
+                + phoneNumber + '\'' + ", account='" + account + '\'' + ", amount=" + amount + ", currency='" + currency
+                + '\'' + ", loanId=" + loanId + '}';
     }
 }

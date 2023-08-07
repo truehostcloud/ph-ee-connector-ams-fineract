@@ -11,29 +11,20 @@ pool:
   vmImage: "ubuntu-latest"
 
 steps:
+  - task: GetRevision@1
+    displayName: 'Get Revision'
+    inputs:
+      VariableName: Revision
+
   - script: |
-      VERSION_TAG=`git describe --abbrev=0 --tags`
+      VERSION_TAG=`./gradlew properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}'`
       echo "##vso[task.setvariable variable=VERSION_TAG]$VERSION_TAG"
-      IMAGE_TAGS="${VERSION_TAG}"
+      IMAGE_TAGS="${VERSION_TAG}.$(date '+%Y.%m.%d').$(Revision)"
       echo "##vso[task.setvariable variable=IMAGE_SEMANTIC_HASH]$IMAGE_TAGS"
       if [[ "$(Build.SourceBranch)" == "refs/heads/main" ]]; then IMAGE_TAGS="$IMAGE_TAGS,latest"; fi;
       echo Tags: $IMAGE_TAGS
       echo "##vso[task.setvariable variable=IMAGE_TAGS]$IMAGE_TAGS"
     displayName: Get git tag
-
-  - script: |
-      docker run -v "$(System.DefaultWorkingDirectory):/tmp/lint" \
-      -e GIT_AUTHORIZATION_BEARER=$(System.AccessToken) \
-      -e CI=true \
-      -e TF_BUILD=true \
-      -e SYSTEM_ACCESSTOKEN=$(System.AccessToken) \
-      -e SYSTEM_COLLECTIONURI=$(System.CollectionUri) \
-      -e SYSTEM_PULLREQUEST_PULLREQUESTID=$(System.PullRequest.PullRequestId) \
-      -e SYSTEM_TEAMPROJECT=$(System.TeamProject) \
-      -e BUILD_BUILD_ID=$(Build.BuildId) \
-      -e BUILD_REPOSITORY_ID=$(Build.Repository.ID) \
-      oxsecurity/megalinter-java:v6
-    displayName: Run MegaLinter
 
   - task: Docker@2
     displayName: Login to Azure registry

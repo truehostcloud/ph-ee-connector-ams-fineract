@@ -1,0 +1,88 @@
+version: "3.9"
+
+services:
+  zeebe:
+    image: camunda/zeebe:8.1.6
+    environment:
+      ZEEBE_LOG_LEVEL: debug
+    ports:
+      - "26500:26500"
+      - "9600:9600"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9600/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 1m30s
+
+  zeebe_ops:
+    image: oaftech.azurecr.io/phee-ns/phee-zeebe-ops:v1.0.2
+    ports:
+      - "5001:5000"
+    environment:
+      ZEEBE_BROKER_CONTACTPOINT: zeebe:26500
+      LOGGING_LEVEL_ROOT: INFO
+    depends_on:
+      zeebe:
+        condition: service_healthy
+
+  channel-connector:
+    image: oaftech.azurecr.io/phee-ns/ph-ee-connector-channel:v1.5.3
+    ports:
+      - "5002:5000"
+      - "8084:8080"
+    environment:
+      DFSPIDS: oaf
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_PATTERN_CONSOLE: "%d{dd-MM-yyyy HH:mm:ss.SSS} %magenta([%thread]) %highlight(%-5level) %logger.%M - %msg%n"
+      AMS_GROUPS_0__IDENTIFIER: fineractAccountID
+      AMS_GROUPS_0__VALUE: fineract
+      MPESA_NOTIFICATION_FAILURE_ENABLED: "false"
+      MPESA_NOTIFICATION_SUCCESS_ENABLED: "false"
+      ZEEBE_BROKER_CONTACTPOINT: zeebe:26500
+    depends_on:
+      zeebe:
+        condition: service_healthy
+
+  mpesa-connector:
+    image: oaftech.azurecr.io/phee-ns/ph-ee-connector-mpesa:v1.2.0
+    ports:
+      - "5003:5000"
+    environment:
+      SKIP_ENABLED: "true" # Actual call to M-PESA will be skipped if this is true
+      ZEEBE_BROKER_CONTACTPOINT: zeebe:26500
+      LOGGING_LEVEL_ROOT: INFO
+      ACCOUNTS_FINERACT_SHORTCODE: ""
+      ACCOUNTS_FINERACT_TILL: ""
+      ACCOUNTS_FINERACT_AUTHHOST: ""
+      ACCOUNTS_FINERACT_APIHOST: ""
+      ACCOUNTS_FINERACT_CLIENTKEY: ""
+      ACCOUNTS_FINERACT_CLIENTSECRET: ""
+      ACCOUNTS_FINERACT_PASSKEY: ""
+    depends_on:
+      zeebe:
+        condition: service_healthy
+
+  momo-connector:
+    image: oaftech.azurecr.io/phee-ns/ph-ee-connector-mtn:latest
+    ports:
+      - "5002:5000"
+    environment:
+      SKIP_ENABLED: "true" # Actual call to MTN-RW Momo will be skipped if this is true
+      ZEEBE_BROKER_CONTACTPOINT: zeebe:26500
+      LOGGING_LEVEL_ROOT: INFO
+    depends_on:
+      zeebe:
+        condition: service_healthy
+
+  fineract-connector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5004:5000"
+    environment:
+      ZEEBE_BROKER_CONTACTPOINT: zeebe:26500
+    depends_on:
+      zeebe:
+        condition: service_healthy

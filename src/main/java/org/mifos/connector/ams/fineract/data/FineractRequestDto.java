@@ -4,6 +4,7 @@ import static org.mifos.connector.ams.fineract.util.ConnectionUtils.convertCusto
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.CUSTOM_DATA;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.math.BigDecimal;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -30,7 +31,7 @@ public class FineractRequestDto {
     private String account;
 
     @JsonProperty("Amount")
-    private Long amount;
+    private BigDecimal amount;
 
     @JsonProperty("Currency")
     private String currency;
@@ -60,7 +61,7 @@ public class FineractRequestDto {
         JSONObject amountJson = channelRequest.getJSONObject("amount");
 
         dto.setRemoteTransactionId(transactionId);
-        dto.setAmount(amountJson.getLong("amount"));
+        dto.setAmount(new BigDecimal(amountJson.getString("amount")));
         dto.setPhoneNumber(phoneNumber);
         dto.setCurrency(amountJson.getString("currency"));
         dto.setAccount(accountId);
@@ -82,7 +83,7 @@ public class FineractRequestDto {
         String accountId = payload.getJSONObject("primaryIdentifier").getString("value");
         FineractRequestDto validationRequestDto = new FineractRequestDto();
         validationRequestDto.setAccount(accountId);
-        validationRequestDto.setAmount(1L);
+        validationRequestDto.setAmount(BigDecimal.valueOf(1L));
         validationRequestDto.setCurrency(currency);
         validationRequestDto.setRemoteTransactionId(transactionId);
         validationRequestDto.setPhoneNumber(walletMsisdn);

@@ -45,6 +45,23 @@ public class FineractRouteBuilder extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
+
+        onException(Exception.class).routeId("transfer-validation-base").handled(true).setBody(exchange -> {
+            // processing exception case
+            exchange.setProperty(PARTY_LOOKUP_FAILED, true);
+            return exchange.getIn().getBody();
+        }).log(LoggingLevel.ERROR, "Exception occurred in route transfer-validation-base: ${exception.message}")
+                .to("direct:errorHandler");
+
+        onException(Exception.class).routeId("transfer-settlement-base").handled(true).setBody(exchange -> {
+            // processing exception case
+            exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, true);
+            return exchange.getIn().getBody();
+        }).log(LoggingLevel.ERROR, "Exception occurred in route transfer-settlement-base: ${exception.message}")
+                .to("direct:errorHandler");
+
+        from("direct:errorHandler").log(LoggingLevel.ERROR, "Error handler route: ${body}");
+
         from("direct:transfer-validation-base").id("transfer-validation-base")
                 .log(LoggingLevel.INFO, "## Starting transfer Validation base route").to("direct:transfer-validation")
                 .choice().when(header(CAMEL_HTTP_RESPONSE_CODE).isEqualTo("200"))

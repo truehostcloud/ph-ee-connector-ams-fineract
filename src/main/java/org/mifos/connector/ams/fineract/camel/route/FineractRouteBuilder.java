@@ -1,11 +1,6 @@
 package org.mifos.connector.ams.fineract.camel.route;
 
-import static org.mifos.connector.ams.fineract.camel.config.CamelProperties.ACCT_HOLDING_INSTITUTION_ID_VARIABLE_NAME;
-import static org.mifos.connector.ams.fineract.camel.config.CamelProperties.AMOUNT_VARIABLE_NAME;
-import static org.mifos.connector.ams.fineract.camel.config.CamelProperties.CAMEL_HTTP_RESPONSE_CODE;
-import static org.mifos.connector.ams.fineract.camel.config.CamelProperties.CHANNEL_REQUEST;
-import static org.mifos.connector.ams.fineract.camel.config.CamelProperties.CURRENCY_VARIABLE_NAME;
-import static org.mifos.connector.ams.fineract.camel.config.CamelProperties.MSISDN_VARIABLE_NAME;
+import static org.mifos.connector.ams.fineract.camel.config.CamelProperties.*;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.CUSTOM_DATA;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.EXTERNAL_ID;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.PARTY_LOOKUP_FAILED;
@@ -49,18 +44,20 @@ public class FineractRouteBuilder extends RouteBuilder {
         onException(Exception.class).routeId("transfer-validation-base").handled(true).setBody(exchange -> {
             // processing exception case
             exchange.setProperty(PARTY_LOOKUP_FAILED, true);
+            exchange.setProperty(ERROR_INFORMATION,
+                    "Exception occurred in route transfer-validation-base: ${exception.message}");
             return exchange.getIn().getBody();
         }).log(LoggingLevel.ERROR, "Exception occurred in route transfer-validation-base: ${exception.message}")
-                .to("direct:errorHandler");
+                .to("direct:error-handler");
 
         onException(Exception.class).routeId("transfer-settlement-base").handled(true).setBody(exchange -> {
             // processing exception case
             exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, true);
             return exchange.getIn().getBody();
         }).log(LoggingLevel.ERROR, "Exception occurred in route transfer-settlement-base: ${exception.message}")
-                .to("direct:errorHandler");
+                .to("direct:error-handler");
 
-        from("direct:errorHandler").log(LoggingLevel.ERROR, "Error handler route: ${body}");
+        from("direct:error-handler").log(LoggingLevel.ERROR, "Error handler route: ${body}");
 
         from("direct:transfer-validation-base").id("transfer-validation-base")
                 .log(LoggingLevel.INFO, "## Starting transfer Validation base route").to("direct:transfer-validation")

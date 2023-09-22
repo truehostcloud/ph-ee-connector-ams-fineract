@@ -13,4 +13,5 @@ public class CamelProperties {
     public static final String CURRENCY_VARIABLE_NAME = "currency";
     public static final String MSISDN_VARIABLE_NAME = "msisdn";
     public static final String ACCT_HOLDING_INSTITUTION_ID_VARIABLE_NAME = "accountHoldingInstitutionId";
+    public static final String ERROR_INFORMATION = "errorInformation";
 }

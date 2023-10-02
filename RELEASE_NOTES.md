@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 0.0.4
+
+    * Fineract AMS connector
+            * [SER-2031] - Update the BPMN files to skip the validation step
 ## Version 0.0.3
 
     * Fineract AMS connector

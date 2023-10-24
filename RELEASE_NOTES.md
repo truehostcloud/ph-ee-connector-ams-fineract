@@ -6,7 +6,7 @@
             * [SER-2031] - Update the BPMN files to skip the validation step
             * [SER-2000] - End payment hub transaction flow when an exception occurs
             * [SER-2001] - Fineract AMS Connector throws error when amount is in decimal format
-            
+
 ## Version 0.0.3
 
     * Fineract AMS connector

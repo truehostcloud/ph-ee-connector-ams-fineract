@@ -1,5 +1,8 @@
 # Release Notes
 
+## Version 0.0.5
+    * Paybill flow
+            * [SER-2040] - Expose validation endpoint for paybill transactions
 ## Version 0.0.4
 
     * Fineract AMS connector

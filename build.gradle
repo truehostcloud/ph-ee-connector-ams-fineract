@@ -11,9 +11,13 @@ description = 'ph-ee-connector-ams-fineract'
 sourceCompatibility = '17'
 
 def camelCoreVersion = '3.20.2'
+def phConnectorCommonVersion = '1.5.1-SNAPSHOT'
 
 repositories {
     mavenCentral()
+    maven {
+        url = uri('https://jfrog.sandbox.fynarfin.io/artifactory/fyn-libs-snapshot')
+    }
 }
 
 dependencies {
@@ -25,6 +29,7 @@ dependencies {
     implementation "org.apache.camel:camel-endpointdsl:${camelCoreVersion}"
     implementation "org.apache.camel:camel-undertow:${camelCoreVersion}"
     implementation "org.apache.camel:camel-http:${camelCoreVersion}"
+    implementation "org.mifos:ph-ee-connector-common:${phConnectorCommonVersion}"
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.14.2'
     implementation 'org.json:json:20230227'
     implementation 'com.google.code.gson:gson:2.10.1'

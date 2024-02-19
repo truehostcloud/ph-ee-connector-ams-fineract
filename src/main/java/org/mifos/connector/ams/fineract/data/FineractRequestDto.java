@@ -1,5 +1,6 @@
 package org.mifos.connector.ams.fineract.data;
 
+import static org.mifos.connector.ams.fineract.camel.config.CamelProperties.CURRENCY_VARIABLE_NAME;
 import static org.mifos.connector.ams.fineract.util.ConnectionUtils.convertCustomData;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.CUSTOM_DATA;
 
@@ -54,18 +55,27 @@ public class FineractRequestDto {
             JSONArray customData) {
         FineractRequestDto dto = new FineractRequestDto();
 
-        String phoneNumber = channelRequest.getJSONObject("payer").getJSONObject("partyIdInfo")
-                .getString("partyIdentifier");
-        String accountId = channelRequest.getJSONObject("payee").getJSONObject("partyIdInfo")
-                .getString("partyIdentifier");
-        JSONObject amountJson = channelRequest.getJSONObject("amount");
+        String phoneNumber = getPartyIdIdentifier(channelRequest, "payer");
+        String accountId = getPartyIdIdentifier(channelRequest, "payee");
+        Object amountObj = channelRequest.get("amount");
 
-        dto.setRemoteTransactionId(transactionId);
-        dto.setAmount(new BigDecimal(amountJson.getString("amount")));
+        if (amountObj != null) {
+            if (amountObj instanceof String amount) {
+
+                dto.setAmount(new BigDecimal(amount));
+                dto.setCurrency(String.valueOf(channelRequest.get(CURRENCY_VARIABLE_NAME)));
+            } else {
+                JSONObject amountJson = (JSONObject) amountObj;
+                dto.setAmount(new BigDecimal(amountJson.getString("amount")));
+                dto.setCurrency(amountJson.getString(CURRENCY_VARIABLE_NAME));
+            }
+        }
+
         dto.setPhoneNumber(phoneNumber);
-        dto.setCurrency(amountJson.getString("currency"));
         dto.setAccount(accountId);
+        dto.setRemoteTransactionId(transactionId);
         dto.setLoanIdFromCustomData(customData);
+
         return dto;
     }
 
@@ -78,7 +88,7 @@ public class FineractRequestDto {
      */
     public static FineractRequestDto convertPayBillPayloadToAmsPayload(JSONObject payload) {
         String transactionId = convertCustomData(payload.getJSONArray("customData"), "transactionId");
-        String currency = convertCustomData(payload.getJSONArray("customData"), "currency");
+        String currency = convertCustomData(payload.getJSONArray("customData"), CURRENCY_VARIABLE_NAME);
         String walletMsisdn = payload.getJSONObject("secondaryIdentifier").getString("value");
         String accountId = payload.getJSONObject("primaryIdentifier").getString("value");
         FineractRequestDto validationRequestDto = new FineractRequestDto();
@@ -103,6 +113,15 @@ public class FineractRequestDto {
             if (loanId != null && !loanId.isBlank()) {
                 this.loanId = Long.valueOf(loanId);
             }
+        }
+    }
+
+    private static String getPartyIdIdentifier(JSONObject party, String partyType) {
+        Object type = party.get(partyType);
+        if (type instanceof JSONArray jsonArray) {
+            return jsonArray.getJSONObject(0).getString("partyIdIdentifier");
+        } else {
+            return ((JSONObject) type).getJSONObject("partyIdInfo").getString("partyIdentifier");
         }
     }
 

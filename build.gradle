@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'org.mifos'
-version = '0.0.4'
+version = '0.0.5'
 description = 'ph-ee-connector-ams-fineract'
 sourceCompatibility = '17'
 

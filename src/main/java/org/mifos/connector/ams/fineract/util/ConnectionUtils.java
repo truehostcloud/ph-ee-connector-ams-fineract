@@ -66,7 +66,8 @@ public class ConnectionUtils {
             try {
                 String filter = item.getString("key");
                 if (filter != null && filter.equalsIgnoreCase(key)) {
-                    return item.getString("value");
+                    Object val = item.get("value");
+                    return val != null ? val.toString() : null;
                 }
             } catch (Exception e) {
                 log.error("Error while converting custom data: {}", e);

@@ -36,3 +36,4 @@ fineract:
   endpoint:
     validation: /paymentHub/verification
     confirmation: /paymentHub/confirmation
+    client-details: /payments/validations

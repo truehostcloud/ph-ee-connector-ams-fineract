@@ -8,6 +8,7 @@ import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.TRANSACTION_
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.TRANSACTION_ID;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.TRANSFER_SETTLEMENT_FAILED;
 
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
@@ -16,6 +17,7 @@ import org.apache.camel.model.dataformat.JsonLibrary;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.mifos.connector.ams.fineract.data.FineractConfirmationRequestDto;
+import org.mifos.connector.ams.fineract.data.FineractGetValidationResponse;
 import org.mifos.connector.ams.fineract.data.FineractRequestDto;
 import org.mifos.connector.ams.fineract.util.ConnectionUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,6 +36,9 @@ public class FineractRouteBuilder extends RouteBuilder {
 
     @Value("${fineract.endpoint.confirmation}")
     private String confirmationEndpoint;
+
+    @Value("${fineract.endpoint.client-details}")
+    private String clientDetailsEndpoint;
 
     @Value("${ams.timeout}")
     private Integer amsTimeout;
@@ -72,7 +77,20 @@ public class FineractRouteBuilder extends RouteBuilder {
                     exchange.setProperty(CURRENCY_VARIABLE_NAME, exchange.getProperty(CURRENCY_VARIABLE_NAME));
                     exchange.setProperty(MSISDN_VARIABLE_NAME, exchange.getProperty(MSISDN_VARIABLE_NAME));
                     log.debug("Fineract Validation Success");
-                }).otherwise().log(LoggingLevel.ERROR, "Validation unsuccessful").process(exchange -> {
+                }).choice().when(exchangeProperty(GET_ACCOUNT_DETAILS_FLAG).isEqualTo(true))
+                .to("direct:get-client-details").unmarshal()
+                .json(JsonLibrary.Jackson, FineractGetValidationResponse[].class).process(e -> {
+                    log.debug("Fineract get client details api response: {}", e.getIn().getBody());
+                    FineractGetValidationResponse[] clientDetailsResponse = e.getIn()
+                            .getBody(FineractGetValidationResponse[].class);
+                    if (clientDetailsResponse != null && clientDetailsResponse.length > 0) {
+                        FineractGetValidationResponse clientDetails = clientDetailsResponse[0];
+                        e.setProperty(CLIENT_NAME_VARIABLE_NAME,
+                                clientDetails.getClientFirstname() + " " + clientDetails.getClientLastname());
+                        e.setProperty(CUSTOM_DATA_VARIABLE_NAME,
+                                FineractGetValidationResponse.convertToCustomData(clientDetails));
+                    }
+                }).endChoice().otherwise().log(LoggingLevel.ERROR, "Validation unsuccessful").process(exchange -> {
                     // processing unsuccessful case
                     exchange.setProperty(PARTY_LOOKUP_FAILED, true);
                     exchange.setProperty(ACCT_HOLDING_INSTITUTION_ID_VARIABLE_NAME,
@@ -105,6 +123,7 @@ public class FineractRouteBuilder extends RouteBuilder {
                                 exchange.getProperty(ACCT_HOLDING_INSTITUTION_ID_VARIABLE_NAME));
                     }
                     log.debug("Validation request DTO: {}", verificationRequestDto);
+                    exchange.setProperty(GET_ACCOUNT_DETAILS_FLAG, verificationRequestDto.isGetAccountDetails());
                     return verificationRequestDto;
                 }).marshal().json(JsonLibrary.Jackson)
                 .toD(getValidationUrl() + "?bridgeEndpoint=true&throwExceptionOnFailure=false&"
@@ -134,6 +153,7 @@ public class FineractRouteBuilder extends RouteBuilder {
                         JSONObject channelRequest = (JSONObject) exchange.getProperty(CHANNEL_REQUEST);
                         String transactionId = exchange.getProperty(TRANSACTION_ID, String.class);
                         String externalId = exchange.getProperty(EXTERNAL_ID, String.class);
+                        externalId = Objects.nonNull(externalId) ? externalId : channelRequest.getString(EXTERNAL_ID);
                         confirmationRequestDto = FineractConfirmationRequestDto.fromChannelRequest(channelRequest,
                                 transactionId);
                         confirmationRequestDto.setStatus("successful");
@@ -152,6 +172,21 @@ public class FineractRouteBuilder extends RouteBuilder {
                 .toD(getConfirmationUrl() + "?bridgeEndpoint=true&throwExceptionOnFailure=false&"
                         + ConnectionUtils.getConnectionTimeoutDsl(amsTimeout))
                 .log(LoggingLevel.INFO, "Fineract confirmation api response: \n ${body}");
+
+        from("direct:get-client-details").id("get-client-details")
+                .log(LoggingLevel.INFO, "## Starting get client details route")
+                .setHeader(Exchange.HTTP_METHOD, constant("GET"))
+                .setHeader("fineract-platform-tenantid", constant("default")).process(e -> {
+                    e.getIn().setHeader(TRANSACTION_ID, e.getProperty(TRANSACTION_ID, String.class));
+                    e.setProperty(TRANSACTION_ID, e.getProperty(TRANSACTION_ID, String.class));
+                    e.getIn().setHeader("clientDetailsUrl", getClientDetailsUrl());
+                }).log(" ## Transaction id: ${header.transactionId}")
+                .log(" ## Transaction id as property: ${exchangeProperty.transactionId}")
+                .toD("${header.clientDetailsUrl}/${header.transactionId}?bridgeEndpoint=true&throwExceptionOnFailure=false&"
+                        + ConnectionUtils.getConnectionTimeoutDsl(amsTimeout))
+                .log(LoggingLevel.INFO, "Headers: ${headers}")
+                .log(LoggingLevel.INFO, "Status: ${header.CamelHttpResponseCode}")
+                .log(LoggingLevel.INFO, "Fineract get client details api response: \n ${body}");
     }
 
     /**
@@ -170,5 +205,14 @@ public class FineractRouteBuilder extends RouteBuilder {
      */
     private String getConfirmationUrl() {
         return fineractBaseUrl + confirmationEndpoint;
+    }
+
+    /**
+     * Combines Fineract base url and the get client details endpoint.
+     *
+     * @return the full url to be used in Fineract get client details requests
+     */
+    private String getClientDetailsUrl() {
+        return fineractBaseUrl + clientDetailsEndpoint;
     }
 }

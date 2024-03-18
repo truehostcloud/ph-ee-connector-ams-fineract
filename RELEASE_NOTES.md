@@ -3,6 +3,8 @@
 ## Version 0.0.5
     * Paybill flow
             * [SER-2040] - Expose validation endpoint for paybill transactions
+            * [SER-2233] - Add BPMN for fineract paybill transactions
+
 ## Version 0.0.4
 
     * Fineract AMS connector

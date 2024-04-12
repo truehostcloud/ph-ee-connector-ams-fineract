@@ -1,6 +1,7 @@
 package org.mifos.connector.ams.fineract.camel.route;
 
 import static org.mifos.connector.ams.fineract.camel.config.CamelProperties.*;
+import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.CONFIRMATION_RECEIVED;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.CUSTOM_DATA;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.EXTERNAL_ID;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.PARTY_LOOKUP_FAILED;
@@ -150,6 +151,12 @@ public class FineractRouteBuilder extends RouteBuilder {
                     // check if actual transaction was also successful
                     Boolean transactionFailed = exchange.getProperty(TRANSACTION_FAILED, Boolean.class);
                     boolean transferSettlementFailed = !Boolean.FALSE.equals(transactionFailed);
+
+                    // When a direct confirmation request is received, then it's a paybill transaction, and we don't
+                    // have to worry about the transactionFailed flag above.
+                    if (Boolean.TRUE.equals(exchange.getProperty(CONFIRMATION_RECEIVED, Boolean.class))) {
+                        transferSettlementFailed = false;
+                    }
                     exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, transferSettlementFailed);
                 }).otherwise()
                 .log(LoggingLevel.ERROR,

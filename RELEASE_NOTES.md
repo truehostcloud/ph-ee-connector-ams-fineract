@@ -1,5 +1,10 @@
 # Release Notes
 
+## Version 0.0.6
+    * Fineract AMS connector
+            * [SER-2304] - Add transaction logs
+            * [SER-2444] - Fix Successful fineract paybill transactions showing on Ops app and Kibana as failed transactions
+
 ## Version 0.0.5
     * Paybill flow
             * [SER-2040] - Expose validation endpoint for paybill transactions

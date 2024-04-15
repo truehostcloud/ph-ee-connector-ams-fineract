@@ -1,6 +1,7 @@
 package org.mifos.connector.ams.fineract.zeebe;
 
 import static org.mifos.connector.ams.fineract.camel.config.CamelProperties.CHANNEL_REQUEST;
+import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.CONFIRMATION_RECEIVED;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.CUSTOM_DATA;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.ERROR_CODE;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.ERROR_DESCRIPTION;
@@ -101,6 +102,7 @@ public class ZeebeWorkers {
                 ex.setProperty(ERROR_DESCRIPTION, variables.get(ERROR_DESCRIPTION));
                 ex.setProperty(GET_TRANSACTION_STATUS_RESPONSE_CODE,
                         variables.get(GET_TRANSACTION_STATUS_RESPONSE_CODE));
+                ex.setProperty(CONFIRMATION_RECEIVED, variables.get(CONFIRMATION_RECEIVED));
 
                 producerTemplate.send("direct:transfer-settlement-base", ex);
 

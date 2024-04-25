@@ -68,7 +68,9 @@ jobs:
           password: ${{ secrets.ACR_PULL_PASSWORD }}
 
       - name: Build image
-        run: docker build . -t oaftech.azurecr.io/oneacrefund/ph-ee-connector-ams-fineract:${{ env.IMAGE_TAGS }}
+        run: |
+           ./gradlew :spotlessApply
+           docker build . -t oaftech.azurecr.io/oneacrefund/ph-ee-connector-ams-fineract:${{ env.IMAGE_TAGS }}
 
       - name: Push image to registry
         #if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release/')

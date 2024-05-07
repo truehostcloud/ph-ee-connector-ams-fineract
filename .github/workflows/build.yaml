@@ -70,11 +70,10 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
-          distribution: 'adopt'
+          distribution: 'jdk'
           java-version: '17'
       - name: Build image
         run: |
-           ./gradlew :spotlessApply
            docker build . -t oaftech.azurecr.io/oneacrefund/ph-ee-connector-ams-fineract:${{ env.IMAGE_TAGS }}
 
       - name: Push image to registry

@@ -57,7 +57,7 @@ jobs:
         uses: actions/setup-java@v2
         with:
           distribution: 'adopt'
-          java-version: '14'
+          java-version: '17'
       - name: Build image
         run: |
            docker build . -t oaftech.azurecr.io/oneacrefund/ph-ee-connector-ams-fineract:${{ env.IMAGE_TAGS }}

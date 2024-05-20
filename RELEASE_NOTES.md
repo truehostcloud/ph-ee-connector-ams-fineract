@@ -1,5 +1,8 @@
 # Release Notes
 
+## Version 0.0.7
+    * Paybill flow
+            * [SER-2514] - Refactor settlement flow to use TNM reference number as transaction id
 ## Version 0.0.6
     * Fineract AMS connector
             * [SER-2304] - Add transaction logs

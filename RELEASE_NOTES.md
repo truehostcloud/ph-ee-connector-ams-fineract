@@ -1,5 +1,8 @@
 # Release Notes
 
+## Version 0.0.8
+    * Paybill flow
+            * [SER-2514] - Fix exception when useWorkflowIdAsTransactionId field is in not in the channel request
 ## Version 0.0.7
     * Paybill flow
             * [SER-2514] - Refactor settlement flow to use TNM reference number as transaction id

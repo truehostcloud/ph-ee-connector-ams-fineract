@@ -176,7 +176,9 @@ public class FineractRouteBuilder extends RouteBuilder {
                         String transactionId = exchange.getProperty(TRANSACTION_ID, String.class);
                         // TNM flow: since the validation flow uses workflowId in the AMS validation call, we need to
                         // use it here as well
-                        Object useWorkflowIdAsTransactionIdObj =  channelRequest.has("useWorkflowIdAsTransactionId") ? channelRequest.get("useWorkflowIdAsTransactionId"): null;
+                        Object useWorkflowIdAsTransactionIdObj = channelRequest.has("useWorkflowIdAsTransactionId")
+                                ? channelRequest.get("useWorkflowIdAsTransactionId")
+                                : null;
                         if (useWorkflowIdAsTransactionIdObj != null && (Boolean) useWorkflowIdAsTransactionIdObj
                                 && channelRequest.has("workflowId")
                                 && channelRequest.get("workflowId") instanceof String workflowId) {

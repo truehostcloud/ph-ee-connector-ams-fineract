@@ -1,6 +1,7 @@
 package org.mifos.connector.ams.fineract.camel.route;
 
 import static org.mifos.connector.ams.fineract.camel.config.CamelProperties.*;
+import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.CONFIRMATION_RECEIVED;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.CUSTOM_DATA;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.EXTERNAL_ID;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.PARTY_LOOKUP_FAILED;
@@ -8,6 +9,8 @@ import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.TRANSACTION_
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.TRANSACTION_ID;
 import static org.mifos.connector.ams.fineract.zeebe.ZeebeVariables.TRANSFER_SETTLEMENT_FAILED;
 
+import java.time.Instant;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
@@ -16,6 +19,7 @@ import org.apache.camel.model.dataformat.JsonLibrary;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.mifos.connector.ams.fineract.data.FineractConfirmationRequestDto;
+import org.mifos.connector.ams.fineract.data.FineractGetValidationResponse;
 import org.mifos.connector.ams.fineract.data.FineractRequestDto;
 import org.mifos.connector.ams.fineract.util.ConnectionUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,6 +38,9 @@ public class FineractRouteBuilder extends RouteBuilder {
 
     @Value("${fineract.endpoint.confirmation}")
     private String confirmationEndpoint;
+
+    @Value("${fineract.endpoint.client-details}")
+    private String clientDetailsEndpoint;
 
     @Value("${ams.timeout}")
     private Integer amsTimeout;
@@ -62,7 +69,9 @@ public class FineractRouteBuilder extends RouteBuilder {
         from("direct:transfer-validation-base").id("transfer-validation-base")
                 .log(LoggingLevel.INFO, "## Starting transfer Validation base route").to("direct:transfer-validation")
                 .choice().when(header(CAMEL_HTTP_RESPONSE_CODE).isEqualTo("200"))
-                .log(LoggingLevel.INFO, "Validation successful").process(exchange -> {
+                .log(LoggingLevel.INFO,
+                        "Fineract validation successful for transaction ${exchangeProperty." + TRANSACTION_ID + "}")
+                .process(exchange -> {
                     // processing success case
                     exchange.setProperty(PARTY_LOOKUP_FAILED, false);
                     exchange.setProperty(ACCT_HOLDING_INSTITUTION_ID_VARIABLE_NAME,
@@ -72,7 +81,23 @@ public class FineractRouteBuilder extends RouteBuilder {
                     exchange.setProperty(CURRENCY_VARIABLE_NAME, exchange.getProperty(CURRENCY_VARIABLE_NAME));
                     exchange.setProperty(MSISDN_VARIABLE_NAME, exchange.getProperty(MSISDN_VARIABLE_NAME));
                     log.debug("Fineract Validation Success");
-                }).otherwise().log(LoggingLevel.ERROR, "Validation unsuccessful").process(exchange -> {
+                }).choice().when(exchangeProperty(GET_ACCOUNT_DETAILS_FLAG).isEqualTo(true))
+                .to("direct:get-client-details").unmarshal()
+                .json(JsonLibrary.Jackson, FineractGetValidationResponse[].class).process(e -> {
+                    log.debug("Fineract get client details api response: {}", e.getIn().getBody());
+                    FineractGetValidationResponse[] clientDetailsResponse = e.getIn()
+                            .getBody(FineractGetValidationResponse[].class);
+                    if (clientDetailsResponse != null && clientDetailsResponse.length > 0) {
+                        FineractGetValidationResponse clientDetails = clientDetailsResponse[0];
+                        e.setProperty(CLIENT_NAME_VARIABLE_NAME,
+                                clientDetails.getClientFirstname() + " " + clientDetails.getClientLastname());
+                        e.setProperty(CUSTOM_DATA_VARIABLE_NAME,
+                                FineractGetValidationResponse.convertToCustomData(clientDetails));
+                    }
+                }).endChoice().otherwise()
+                .log(LoggingLevel.ERROR,
+                        "Fineract validation unsuccessful for transaction ${exchangeProperty." + TRANSACTION_ID + "}")
+                .process(exchange -> {
                     // processing unsuccessful case
                     exchange.setProperty(PARTY_LOOKUP_FAILED, true);
                     exchange.setProperty(ACCT_HOLDING_INSTITUTION_ID_VARIABLE_NAME,
@@ -104,23 +129,38 @@ public class FineractRouteBuilder extends RouteBuilder {
                         exchange.setProperty(ACCT_HOLDING_INSTITUTION_ID_VARIABLE_NAME,
                                 exchange.getProperty(ACCT_HOLDING_INSTITUTION_ID_VARIABLE_NAME));
                     }
-                    log.debug("Validation request DTO: {}", verificationRequestDto);
+                    log.info("Fineract validation request DTO for transaction {} sent on {}: \n{}",
+                            verificationRequestDto.getRemoteTransactionId(), Instant.now(), verificationRequestDto);
+                    exchange.setProperty(GET_ACCOUNT_DETAILS_FLAG, verificationRequestDto.isGetAccountDetails());
                     return verificationRequestDto;
                 }).marshal().json(JsonLibrary.Jackson)
                 .toD(getValidationUrl() + "?bridgeEndpoint=true&throwExceptionOnFailure=false&"
                         + ConnectionUtils.getConnectionTimeoutDsl(amsTimeout))
-                .log(LoggingLevel.INFO, "Fineract verification api response: \n\n..\n\n..\n\n.. ${body}");
+                .log(LoggingLevel.INFO,
+                        "Received Fineract validation response for " + "transaction ${exchangeProperty."
+                                + TRANSACTION_ID
+                                + "} on ${header.Date} with status: ${header.CamelHttpResponseCode}. Body: \n ${body}");
 
         from("direct:transfer-settlement-base").id("transfer-settlement-base")
                 .log(LoggingLevel.INFO, "## Transfer Settlement route").to("direct:transfer-settlement").choice()
                 .when(header(CAMEL_HTTP_RESPONSE_CODE).isEqualTo("200"))
-                .log(LoggingLevel.INFO, "Call to Fineract AMS for settlement was successful").process(exchange -> {
+                .log(LoggingLevel.INFO,
+                        "Fineract settlement successful for transaction ${exchangeProperty." + TRANSACTION_ID + "}")
+                .process(exchange -> {
                     // processing success case
                     // check if actual transaction was also successful
                     Boolean transactionFailed = exchange.getProperty(TRANSACTION_FAILED, Boolean.class);
                     boolean transferSettlementFailed = !Boolean.FALSE.equals(transactionFailed);
+
+                    // When a direct confirmation request is received, then it's a paybill transaction, and we don't
+                    // have to worry about the transactionFailed flag above.
+                    if (Boolean.TRUE.equals(exchange.getProperty(CONFIRMATION_RECEIVED, Boolean.class))) {
+                        transferSettlementFailed = false;
+                    }
                     exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, transferSettlementFailed);
-                }).otherwise().log(LoggingLevel.ERROR, "Call to  Fineract AMS for settlement was unsuccessful")
+                }).otherwise()
+                .log(LoggingLevel.ERROR,
+                        "Fineract settlement unsuccessful for transaction ${exchangeProperty." + TRANSACTION_ID + "}")
                 .process(exchange ->
                 // processing unsuccessful case
                 exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, true));
@@ -132,8 +172,21 @@ public class FineractRouteBuilder extends RouteBuilder {
                     FineractConfirmationRequestDto confirmationRequestDto;
                     if (exchange.getProperty(CHANNEL_REQUEST) != null) {
                         JSONObject channelRequest = (JSONObject) exchange.getProperty(CHANNEL_REQUEST);
+
                         String transactionId = exchange.getProperty(TRANSACTION_ID, String.class);
+                        // TNM flow: since the validation flow uses workflowId in the AMS validation call, we need to
+                        // use it here as well
+                        Object useWorkflowIdAsTransactionIdObj = channelRequest.has("useWorkflowIdAsTransactionId")
+                                ? channelRequest.get("useWorkflowIdAsTransactionId")
+                                : null;
+                        if (useWorkflowIdAsTransactionIdObj != null && (Boolean) useWorkflowIdAsTransactionIdObj
+                                && channelRequest.has("workflowId")
+                                && channelRequest.get("workflowId") instanceof String workflowId) {
+                            transactionId = workflowId;
+                        }
+
                         String externalId = exchange.getProperty(EXTERNAL_ID, String.class);
+                        externalId = Objects.nonNull(externalId) ? externalId : channelRequest.getString(EXTERNAL_ID);
                         confirmationRequestDto = FineractConfirmationRequestDto.fromChannelRequest(channelRequest,
                                 transactionId);
                         confirmationRequestDto.setStatus("successful");
@@ -146,12 +199,36 @@ public class FineractRouteBuilder extends RouteBuilder {
                                 .convertPayBillPayloadToAmsPayload(payBillRequest);
                         exchange.setProperty(TRANSACTION_ID, confirmationRequestDto.getRemoteTransactionId());
                     }
-                    log.info("Fineract Confirmation request DTO: \n\n\n {}", confirmationRequestDto);
+                    log.info("Fineract confirmation request DTO for transaction {} sent on {}: \n{}",
+                            confirmationRequestDto.getRemoteTransactionId(), Instant.now(), confirmationRequestDto);
                     return confirmationRequestDto;
                 }).marshal().json(JsonLibrary.Jackson)
                 .toD(getConfirmationUrl() + "?bridgeEndpoint=true&throwExceptionOnFailure=false&"
                         + ConnectionUtils.getConnectionTimeoutDsl(amsTimeout))
-                .log(LoggingLevel.INFO, "Fineract confirmation api response: \n ${body}");
+                .log(LoggingLevel.INFO,
+                        "Received Fineract confirmation response for " + "transaction ${exchangeProperty."
+                                + TRANSACTION_ID
+                                + "} on ${header.Date} with status: ${header.CamelHttpResponseCode}. Body: \n ${body}");
+
+        from("direct:get-client-details").id("get-client-details")
+                .log(LoggingLevel.INFO, "## Starting get client details route")
+                .setHeader(Exchange.HTTP_METHOD, constant("GET"))
+                .setHeader("fineract-platform-tenantid", constant("default")).process(e -> {
+                    String transactionId = e.getProperty(TRANSACTION_ID, String.class);
+                    e.getIn().setHeader(TRANSACTION_ID, transactionId);
+                    e.setProperty(TRANSACTION_ID, transactionId);
+                    e.getIn().setHeader("clientDetailsUrl", getClientDetailsUrl());
+                    log.info("Fineract client details request for transaction {} sent on {}", transactionId,
+                            Instant.now());
+                }).log(" ## Transaction id: ${header.transactionId}")
+                .log(" ## Transaction id as property: ${exchangeProperty.transactionId}")
+                .toD("${header.clientDetailsUrl}/${header.transactionId}?bridgeEndpoint=true&throwExceptionOnFailure=false&"
+                        + ConnectionUtils.getConnectionTimeoutDsl(amsTimeout))
+                .log(LoggingLevel.INFO, "Headers: ${headers}")
+                .log(LoggingLevel.INFO, "Status: ${header.CamelHttpResponseCode}").log(LoggingLevel.INFO,
+                        "Received Fineract client details response for " + "transaction ${exchangeProperty."
+                                + TRANSACTION_ID
+                                + "} on ${header.Date} with status: ${header.CamelHttpResponseCode}. Body: ${body}");
     }
 
     /**
@@ -170,5 +247,14 @@ public class FineractRouteBuilder extends RouteBuilder {
      */
     private String getConfirmationUrl() {
         return fineractBaseUrl + confirmationEndpoint;
+    }
+
+    /**
+     * Combines Fineract base url and the get client details endpoint.
+     *
+     * @return the full url to be used in Fineract get client details requests
+     */
+    private String getClientDetailsUrl() {
+        return fineractBaseUrl + clientDetailsEndpoint;
     }
 }

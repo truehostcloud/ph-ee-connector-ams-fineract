@@ -1,5 +1,21 @@
 # Release Notes
 
+## Version 0.0.8
+    * Paybill flow
+            * [SER-2514] - Fix exception when useWorkflowIdAsTransactionId field is in not in the channel request
+## Version 0.0.7
+    * Paybill flow
+            * [SER-2514] - Refactor settlement flow to use TNM reference number as transaction id
+## Version 0.0.6
+    * Fineract AMS connector
+            * [SER-2304] - Add transaction logs
+            * [SER-2444] - Fix Successful fineract paybill transactions showing on Ops app and Kibana as failed transactions
+
+## Version 0.0.5
+    * Paybill flow
+            * [SER-2040] - Expose validation endpoint for paybill transactions
+            * [SER-2233] - Add BPMN for fineract paybill transactions
+
 ## Version 0.0.4
 
     * Fineract AMS connector

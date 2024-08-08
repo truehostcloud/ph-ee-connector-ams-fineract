@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+
+  fineract-connector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5004:5000"
+    environment:
+      ZEEBE_BROKER_CONTACTPOINT: zeebe:26500
